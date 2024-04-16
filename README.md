@@ -11,3 +11,7 @@
   ```
 
 ### Install
+
+## Licence
+
+Check [Licence](github.com/TheodoreDev/OS/master/LICENCE) file for more informations
