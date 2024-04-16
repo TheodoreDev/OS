@@ -14,4 +14,4 @@
 
 ## Licence
 
-Check [Licence](github.com/TheodoreDev/OS/master/LICENCE) file for more informations
+Check [Licence](github.com/TheodoreDev/OS/LICENCE) file for more informations
