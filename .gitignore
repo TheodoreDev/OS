@@ -1,1 +1,2 @@
-./src/bootSect.bin
+*.bin
+.vs

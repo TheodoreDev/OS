@@ -1,3 +1,0 @@
-floppya: 1_44=bootSect.bin, status=inserted
-boot: a
-romimage: file=/usr/share/bochs/BIOS-bochs-legacy
