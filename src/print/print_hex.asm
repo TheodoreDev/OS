@@ -7,7 +7,7 @@
 
 print_hex:
 	pusha			; save all reg to the stack
-	mov cx, 0		; init loop counter
+	xor cx, cx		; init loop counter
 
 hex_loop:
 	cmp cx, 4		; are we at the end of loop ?
@@ -31,7 +31,7 @@ move_intoBX:
 	jmp hex_loop		; loop for next hex digit in DX
 
 end_hexloop:
-	mov bx, hexString
+	mov si, hexString
 	call print_string
 
 	popa			; restore all reg from the stack

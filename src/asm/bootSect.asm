@@ -36,7 +36,7 @@ mov cl, 0x03                            ; starting sector to read from disk
 
 read_disk2:
         mov ah, 0x02                    ; BIOS int 13/ah=2 read disk sector
-        mov al, 0x01                    ; number of sector to read
+        mov al, 0x02                    ; number of sector to read
         int 0x13                        ; BIOS interrupts for disk functions
 
         jc read_disk2                    ; retry if disk read error (carry = 1)
