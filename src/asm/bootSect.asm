@@ -7,13 +7,13 @@ org 0x7c00				; 'origin' of Boot code; help make sure adress don't change
 ;; set up ES:BX memory adress to load sector(s) into
 mov bx, 0x1000				; load sector to memory adress 0x1000
 mov es, bx				; ES = 0x1000
-mov bx, 0				; ES:BX = 0x1000:0
+mov bx, 0x0				; ES:BX = 0x1000:0
 
 ;; set up disk read
 mov dh, 0x0				; head 0
 mov dl, 0x0				; drive 0
 mov ch, 0x0				; cylinder 0
-mov cl, 0x02				; starting sector to read from disk
+mov cl, 0x05				; starting sector to read from disk
 
 read_disk:
 	mov ah, 0x02			; BIOS int 13/ah=2 read disk sector
@@ -26,17 +26,17 @@ read_disk:
 ;; set up ES:BX memory adress to load sector(s) into
 mov bx, 0x2000                          ; load sector to memory adress 0x2000
 mov es, bx                              ; ES = 0x2000
-mov bx, 0                               ; ES:BX = 0x2000:0
+mov bx, 0x0                             ; ES:BX = 0x2000:0
 
 ;; set up disk read
 mov dh, 0x0                             ; head 0
 mov dl, 0x0                             ; drive 0
 mov ch, 0x0                             ; cylinder 0
-mov cl, 0x03                            ; starting sector to read from disk
+mov cl, 0x02                            ; starting sector to read from disk
 
 read_disk2:
         mov ah, 0x02                    ; BIOS int 13/ah=2 read disk sector
-        mov al, 0x02                    ; number of sector to read
+        mov al, 0x03                    ; number of sector to read
         int 0x13                        ; BIOS interrupts for disk functions
 
         jc read_disk2                    ; retry if disk read error (carry = 1)
