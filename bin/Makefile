@@ -1,6 +1,9 @@
 # Create the OS.bin file ( make OS )
 OS: bootSect.bin kernel.bin fileTable.bin calculator.bin
-	cat bootSect.bin kernel.bin fileTable.bin calculator.bin > OS.bin
+	cat bootSect.bin kernel.bin fileTable.bin calculator.bin > temp.bin;\
+	dd if=/dev/zero of=OS.bin bs=512 count=2880;\
+	dd if=temp.bin of=OS.bin conv=notrunc;\
+	rm temp.bin
 
 # Create boot sector bin file
 bootSect.bin:
