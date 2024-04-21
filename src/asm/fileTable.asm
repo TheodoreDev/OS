@@ -1,3 +1,4 @@
+;;;
 ;;; fileTable.asm: basic file table made with db
 ;;; string consists of '{fileName1-sector#, fileName2-sector#, ... , fileNameN-sector#}'
 ;;;
@@ -16,10 +17,10 @@
 ;;;                       127.5KB; Max file size overall = 255*512*255 bytes or ~32MB 
 ;;; ---------------------------------
 
-	db "bootSect  ", "bin", 00h, 01h, 01h,\
-	"kernel    ", "bin", 00h, 02h, 03h,\
-	"fileTable ", "txt", 00h, 05h, 01h,\
-	"calculator", "bin", 00h, 06h, 01h
+	db 'bootSect  ','bin',00h,01h,01h,\
+	'kernel    ','bin',00h,02h,03h,\
+	'fileTable ','txt',00h,05h,01h,\
+	'calculator','bin',00h,06h,01h
 
-;; sector padding magic
-times 512-($-$$) db 0                           ; pad rest of file to 0s till end of sector
+	;; sector padding magic
+	times 512-($-$$) db 0 					; pad rest of file to 0s till end of sector

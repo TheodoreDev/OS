@@ -124,10 +124,19 @@ restart_search:
 
 ;; Read disk sector of pgm to memory and execute it by far jmp
 found_pgm:
+	;; get file extention
+	mov al, [ES:BX]
+	mov [fileExt], al
+	mov al, [ES:BX+1]
+	mov [fileExt+1], al
+	mov al, [ES:BX+2]
+	mov [fileExt+2], al
+	
 	add bx, 4					; go to starting sector of user input
 	mov cl, [ES:BX]				; use to get sector number
 	inc bx
 	mov bl, [ES:BX]				; file size in sector / number of sector to read
+	mov byte [fileSize], bl
 
 	xor ax, ax					; reste ax to 0
 	mov dl, 0x00
@@ -144,13 +153,22 @@ found_pgm:
 	mov dl, 0x00				; drive number
 
 	int 0x13
-	jnc pgm_loaded				; carry flag not set, succes
+	jnc run_program				; carry flag not set, succes
 
 	mov si, pgmNotLoaded		; pgm not loaded correctly, error
 	call print_string
-	jmp get_input				; go back to prompt
+	jmp get_input				; go back to prompt	
 
-pgm_loaded:
+run_program:
+	;; Check file extention in file table entry
+	mov cx, 3
+	mov si, fileExt
+	mov ax, 2000h				; Reset es to kernel space for comparison (ES = DS)
+	mov es, ax					; ES <- 0x2000
+	mov di, fileBin
+	repe cmpsb
+	jne print_txt				; if txt, print it to screen
+
 	mov ax, 0x8000				; pgm loaded, set segment reg to location
 	mov ds, ax
 	mov es, ax
@@ -158,6 +176,26 @@ pgm_loaded:
 	mov gs, ax
 	mov ss, ax
 	jmp 0x8000:0x0000			; far jmp to pgm
+
+print_txt:
+	mov ax, 8000h				; Set ES back to file memory location
+	mov es, ax					; ES <- 0x8000
+	xor cx, cx
+	mov ah, 0x0e
+	
+add_cx_size:
+	cmp byte [fileSize], 0
+	je print_file_char
+	add cx, 512
+	dec byte [fileSize]
+	jne add_cx_size
+
+print_file_char:
+	mov al, [ES:BX]
+	int 10h						; print file char to screen
+	inc bx
+	loop print_file_char
+	jmp get_input
 
 input_not_found:
 	mov si, failMsg				; command not found
@@ -301,6 +339,14 @@ cmdClear:
 
 cmdLength:
 	db 0
+fileExt:
+	db "   ", 0
+fileSize:
+	db 0
+fileBin:
+	db "bin", 0
+fileTxt:
+	db "txt", 0
 cmdString:
 	db ""
 

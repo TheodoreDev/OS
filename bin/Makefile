@@ -25,6 +25,10 @@ calculator.bin:
 	fasm ../src/asm/calculator.asm
 	mv ../src/asm/calculator.bin ./
 
+# Run OS through bochs (use 'Make run')
+run: OS
+	bochs -q
+
 # Clean up all the bin file
 clean:
 	rm *.bin

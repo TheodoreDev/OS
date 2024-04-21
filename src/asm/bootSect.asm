@@ -49,7 +49,7 @@ mov fs, ax				; " "
 mov gs, ax				; " "
 mov ss, ax				; stack segment
 
-jmp 0x2000:0				; never return from this
+jmp 0x2000:0x0				; never return from this
 
 ;; Boot Sector magic
 times 510-($-$$) db 0                   ; pad file with 0s until 510th bytes  
