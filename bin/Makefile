@@ -1,6 +1,6 @@
 # Create the OS.bin file ( make OS )
-OS: bootSect.bin kernel.bin fileTable.bin calculator.bin
-	cat bootSect.bin kernel.bin fileTable.bin calculator.bin > temp.bin;\
+OS: bootSect.bin kernel.bin fileTable.bin calculator.bin editor.bin
+	cat bootSect.bin kernel.bin fileTable.bin calculator.bin editor.bin > temp.bin;\
 	dd if=/dev/zero of=OS.bin bs=512 count=2880;\
 	dd if=temp.bin of=OS.bin conv=notrunc;\
 	rm temp.bin
@@ -25,8 +25,12 @@ calculator.bin:
 	fasm ../src/asm/calculator.asm
 	mv ../src/asm/calculator.bin ./
 
+editor.bin:
+	fasm ../src/asm/editor.asm
+	mv ../src/asm/editor.bin ./
+
 # Run OS through bochs (use 'Make run')
-run: OS
+run: clean OS
 	bochs -q
 
 # Clean up all the bin file

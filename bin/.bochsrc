@@ -3,3 +3,4 @@ romimage: file=/usr/share/bochs/BIOS-bochs-legacy
 display_library: x
 megs: 1
 boot: a
+keyboard: type=at, keymap=/usr/share/bochs/keymaps/x11-pc-fr.map

@@ -48,7 +48,8 @@ dir_entry_number:
 	
 	inc bx
 	mov al, [ES:BX]
-	call print_hex_as_ascii
+	call hex_to_ascii
+	int 0x10
 
 start_sector_number:
 	mov cx, 9
@@ -56,7 +57,8 @@ start_sector_number:
 	
 	inc bx
 	mov al, [ES:BX]
-	call print_hex_as_ascii
+	call hex_to_ascii
+	int 0x10
 
 file_size:
 	mov cx, 14
@@ -64,7 +66,8 @@ file_size:
 	
 	inc bx
 	mov al, [ES:BX]
-	call print_hex_as_ascii
+	call hex_to_ascii
+	int 0x10
 	mov al, 0xA
 	int 0x10
 	mov al, 0xD

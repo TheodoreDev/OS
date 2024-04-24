@@ -47,6 +47,11 @@ print_registers:
 	mov dx, es
 	call print_hex                  ; print es
 
+	mov byte [regString+2], "s"
+	call print_string
+	mov dx, ss
+	call print_hex                  ; print ss
+
 	mov ah, 0x0e
 	mov al, 0xA
 	int 0x10

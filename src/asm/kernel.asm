@@ -83,7 +83,6 @@ check_commands:
 	je clear_screen
 
 	pop cx						; restore cx from the stack
-	
 
 check_files:
 	mov ax, 0x1000
@@ -192,10 +191,18 @@ add_cx_size:
 
 print_file_char:
 	mov al, [ES:BX]
+	cmp al, 0Fh
+	jle call_hex_to_ascii
+	
+return_file_char:
 	int 10h						; print file char to screen
 	inc bx
-	loop print_file_char
-	jmp get_input
+	loop print_file_char		; keep printing char and decrement CX until 0
+	jmp get_input				; go back to prompt
+
+call_hex_to_ascii:
+	call hex_to_ascii
+	jmp return_file_char
 
 input_not_found:
 	mov si, failMsg				; command not found
@@ -262,7 +269,7 @@ end_program:
 	hlt							; halt the cpu
 
 ;; convert hex byte to ascii
-print_hex_as_ascii:
+hex_to_ascii:
 	mov ah, 0x0e
 	add al, 0x30				; convert to ascii number
 	cmp al, 0x39				; is value 0h-9h or A-F
@@ -270,7 +277,6 @@ print_hex_as_ascii:
 	add al, 0x7					; add hex to get ascii 'A' - 'F'
 
 hexNum:
-	int 0x10
 	ret
 
 ;; print out cx number of space to screen
@@ -297,7 +303,7 @@ startMessage:
 	"Kernel Booted, Welcome to TedOS.", nl,\
 	"--------------------------------", nl, 0
 prompt:
-	db nl, ">", 0
+	db nl, "OS/>", 0
 	
 success:
 	db nl, "Command/Program found !", nl, 0
@@ -336,6 +342,8 @@ cmdHalt:
 	db "hlt",0
 cmdClear:
 	db "cls", 0
+cmdEdt:
+	db "editor", 0
 
 cmdLength:
 	db 0
