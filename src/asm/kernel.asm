@@ -83,6 +83,13 @@ check_commands:
 	je clear_screen
 
 	pop cx						; restore cx from the stack
+	push cx
+	mov di, cmdShutd			; shutdown command
+	mov si, cmdString			; reset di to point to start of user input
+	repe cmpsb
+	je shutdown
+
+	pop cx						; restore cx from the stack
 
 check_files:
 	mov ax, 0x1000
@@ -173,7 +180,6 @@ run_program:
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-	mov ss, ax
 	jmp 0x8000:0x0000			; far jmp to pgm
 
 print_txt:
@@ -183,11 +189,7 @@ print_txt:
 	mov ah, 0x0e
 	
 add_cx_size:
-	cmp byte [fileSize], 0
-	je print_file_char
-	add cx, 512
-	dec byte [fileSize]
-	jne add_cx_size
+	imul cx, word [fileSize], 512
 
 print_file_char:
 	mov al, [ES:BX]
@@ -262,6 +264,13 @@ squareColLoop:
 clear_screen:
 	call resetTextScreen
 	jmp get_input
+
+;; Command shutdown
+shutdown:
+	;; outw(0x604, 0x2000)
+	mov ax, 2000h
+	mov dx, 604h
+	out dx, ax
 
 ;; menu N) End program
 end_program:
@@ -342,6 +351,8 @@ cmdHalt:
 	db "hlt",0
 cmdClear:
 	db "cls", 0
+cmdShutd:
+	db "shutdown", 0
 cmdEdt:
 	db "editor", 0
 
@@ -359,4 +370,4 @@ cmdString:
 	db ""
 
 ;; Boot Padding magic
-times 1536-($-$$) db 0			; pad file with 0s until 1536th bytes
+times 2048-($-$$) db 0			; pad file with 0s until 1536th bytes

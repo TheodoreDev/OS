@@ -3,7 +3,7 @@ OS: bootSect.bin kernel.bin fileTable.bin calculator.bin editor.bin
 	cat bootSect.bin kernel.bin fileTable.bin calculator.bin editor.bin > temp.bin;\
 	dd if=/dev/zero of=OS.bin bs=512 count=2880;\
 	dd if=temp.bin of=OS.bin conv=notrunc;\
-	rm temp.bin
+	rm *[!OS].bin
 
 # Create boot sector bin file
 bootSect.bin:
@@ -35,4 +35,4 @@ run: clean OS
 
 # Clean up all the bin file
 clean:
-	rm *.bin
+	rm -f *.bin

@@ -3,4 +3,4 @@
 make clean
 make OS
 echo "TedOS is starting ..."
-bochs
+qemu-system-i386 -k fr -fda OS.bin
