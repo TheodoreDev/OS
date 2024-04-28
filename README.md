@@ -4,12 +4,6 @@
 
 ### Dependencies
 
-* fasm is used as an assembler for the boot. Run in the src folder
-  
-  ```
-  fasm bootSector.asm
-  ```
-
 ### Install
 
 ## Licence
