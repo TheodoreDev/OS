@@ -92,6 +92,8 @@ end_editor:
 ;; include files
 include "../include/print/print_string.inc"
 include "../include/screen/clear_screen_text_mode.inc"
+include "../include/disk/load_file.inc"
+include "../include/disk/save_file.inc"
 
 ;; variables
 testString:
