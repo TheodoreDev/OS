@@ -12,15 +12,15 @@ save_file:
 
 	;; Copy filename to variable
 	mov cx, 10
-	mov di, file_name
+	mov di, set_file_name2
 	.loop:
 	lodsb
 	stosb
 	loop .loop
 
 	;; Reset file_name adress
-	mov si, file_name
+	mov si, set_file_name2
 
 
 ;; Variables
-file_name:	times 10 db 0
+set_file_name2:	times 10 db 0

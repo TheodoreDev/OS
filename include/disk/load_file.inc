@@ -11,14 +11,14 @@ load_file:
 	
 	;; Copy filename to variable
 	mov cx, 10
-	mov di, file_name
+	mov di, set_file_name
 	.loop:
 	lodsb
 	stosb
 	loop .loop
 
 	;; Reset file_name adress
-	mov si, file_name
+	mov si, set_file_name
 
 	;; Search filetable for filename
 	xor ax, ax
@@ -52,7 +52,7 @@ compare_filenames:
 	jmp .loop
 
 restart_check:
-	mov si, file_name
+	mov si, set_file_name
 	pop di
 	inc di
 	jmp check_filename
@@ -83,4 +83,4 @@ return_to_caller:
 	ret
 
 ;; Variables
-file_name:	times 10 db 0
+set_file_name:	times 10 db 0
