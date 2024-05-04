@@ -16,10 +16,14 @@ init:
 	mov word di, 0F00h				; ES:DI <- 0B00h:80*2*24
 	
 	mov si, controlsString
-	mov cx, 33						; number of byte to move
+	mov cx, 52						; number of byte to move
 	cld								; clear direction flag (increment operands)
 
-	rep movsw						; mov [di], [si] and increment both
+	mov al, byte [text_color]
+	.loop:
+	movsb							; mov [di], [si] and increment both
+	stosb							; store character attribute byte (txt color)
+	loop .loop
 	
 	;; Restore data/extra segments
 	mov ax, 800h
@@ -52,7 +56,7 @@ return_from_hex:
 ;; Convert to valid machine code & run
 execute_input:
 	mov byte [di], 0C3h 			; C3 hex = near return x86 instruction
-	jmp hex_code					; jump to hex code memory location to run
+	call hex_code					; jump to hex code memory location to run
 	
 	jmp init						; reset for next input
 
@@ -87,7 +91,7 @@ end_editor:
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
-	jmp 200h:0000h						; far jmp back to kernel
+	jmp 200h:0000h					; far jmp back to kernel
 
 ;; include files
 include "../include/print/print_string.inc"
@@ -99,15 +103,18 @@ include "../include/disk/save_file.inc"
 testString:
 	db "Testing", 0
 controlsString:   
-	db '$',17h,' ',17h,'=',17h,' ',17h,'R',17h,'u',17h,'n',17h,\
-	' ',17h,'c',17h,'o',17h,'d',17h,'e',17h,' ',17h,'?',17h,' ',\
-	17h,'=',17h,' ',17h,'R',17h,'e',17h,'t',17h,'u',17h,'r',17h,\
-	'n',17h,' ',17h,'t',17h,'o',17h,' ',17h,'k',17h,'e',17h,'r',\
-	17h,'n',17h,'e',17h,'l',17h
+	db " $ = Run code ; ? = Return to kernel ; S = save file"
+controlsString_length equ $-controlsString
+new_o_current_string:
+	db "[C]reate new file or [L]oad current file?"
+choose_filetype_string:
+	db "[B]inary/hex file or [O]ther file type"
 hex_byte:
 	db 00h							; 1 byte/2 hex digits
 hex_code:
 	times 255 db 0
+text_color:
+	db 17h
 
 ;; Sector padding
-times 1024-($-$$) db 0
+times 1536-($-$$) db 0

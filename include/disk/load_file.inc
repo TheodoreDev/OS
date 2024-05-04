@@ -11,14 +11,14 @@ load_file:
 	
 	;; Copy filename to variable
 	mov cx, 10
-	mov di, set_file_name
+	mov di, set_file_name_load
 	.loop:
 	lodsb
 	stosb
 	loop .loop
 
 	;; Reset file_name adress
-	mov si, set_file_name
+	mov si, set_file_name_load
 
 	;; Search filetable for filename
 	xor ax, ax
@@ -26,38 +26,38 @@ load_file:
 	mov di, 1000h			; location of fileTable in memory
 	mov cx, 10
 
-check_filename:
+check_filename_load:
 	mov al, [ES:DI]
 	cmp al, 0 				; end of filetable ?
-	je return_to_caller
+	je return_to_caller_load
 
 	cmp al, [si]
-	je compare_filenames
+	je compare_filenames_load
 
 	add di, 16				; go to next file entry in file table
-	jmp check_filename
+	jmp check_filename_load
 
-compare_filenames:
+compare_filenames_load:
 	push di
 	
 	.loop:
 	mov al, [ES:DI]
 	inc di
 	cmp al, [si]
-	jne restart_check
+	jne restart_check_load
 	
 	dec cl
-	jz found_file
+	jz found_file_load
 	inc si
 	jmp .loop
 
-restart_check:
-	mov si, set_file_name
+restart_check_load:
+	mov si, set_file_name_load
 	pop di
 	inc di
-	jmp check_filename
+	jmp check_filename_load
 
-found_file:
+found_file_load:
 	;; Reset disk
 	xor ax, ax				; int 13h ah 00h - reset disk
 	xor dl, dl				; Disk 0
@@ -75,12 +75,12 @@ found_file:
 	xor dx, dx				; dh = head number, dl = drive number
 	
 	int 13h
-	jnc return_to_caller
+	jnc return_to_caller_load
 
 	;; Error
 
-return_to_caller:
+return_to_caller_load:
 	ret
 
 ;; Variables
-set_file_name:	times 10 db 0
+set_file_name_load:	times 10 db 0

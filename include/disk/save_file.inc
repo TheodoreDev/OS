@@ -1,10 +1,12 @@
 ;;; save_file.inc: Save file data to disk
 ;;;
-;;; Params : File name, file ext, file size (in hex sector), memory location to save data from
+;;; Params : File name, file ext, file size (in hex sector), memory location to save data from, error code
 ;;;
 
 save_file:
 	;; Get params off stack
+	pop ax					; error code
+	mov word [error_code], ax
 	pop bx
 	pop fs					; FS:BX memory location to save data from
 	pop cx					; file size
@@ -80,20 +82,6 @@ found_file_save:
 	int 13h
 
 	;; File exist in file table and on disk
-	
-	;; Set up params for int 13h ah02h - read disk sectors
-;;	add di, 4
-;;	xor ch, ch 				; Track number
-;;	mov cl, [ES:DI]			; sector number to start reading at
-;;	inc di
-;;	mov ax, fs
-;;	mov es, ax				; segment adress to load to, BX already set
-;;	mov ah, 02h				; int 13h ah 02h
-;;	mov al, [ES:DI]			; number of sectors to read
-;;	xor dx, dx				; dh = head number, dl = drive number
-	
-;;	int 13h
-;;	jnc return_to_caller
 
 new_file:
 	;; Create new file table entry at end of current entry
@@ -103,13 +91,42 @@ new_file:
 	mov cx, 3
 	mov si, set_file_ext
 	rep movsb				; Move 3 bytes of file extention in si to filetable
-	mov [ES:DI], 00h		; Directory entry number (0 = first entry)
+	xor al, al 
+	stosb					; Directory entry number (0 = first entry)
 	mov al, byte [last_saved_sector]
 	stosb					; starting sector
 	mov al, byte [file_size]
 	stosb					; File size
 
-;; Write change filetable to disk
+	;; Write change filetable to disk
+	mov ah, 03h					; int 13h ah 03h - write disk sector
+	mov al, 01h					; number of sector to write
+	xor ch, ch					; track number
+	mov cl, 06h					; sector number to start writting at
+	xor dx, dx					; dh = head number, dl = drive number
+	mov word [saved_bx], bx
+	mov bx, 1000h				; ES:BX <- 0000h:1000h (file table mem location)
+
+	int 13h
+	jnc write_file_data
+
+write_file_data:
+	mov ax, fs 
+	mov es, ax
+
+	mov ah, 03h					; int 13h ah 03h - write disk sector
+	mov al, byte [file_size]	; number of sector to write
+	xor ch, ch					; track number
+	mov cl, byte [last_saved_sector]
+	xor dx, dx					; dh = head number, dl = drive number
+	mov bx, word [saved_bx]		; ES:BX <- file data memory location
+
+	int 13h
+	jnc return_to_caller_save
+
+	;; Disk write error
+	mov word [error_code], 1	; error happend
+	push word [error_code]
 
 return_to_caller_save:
 	ret
@@ -120,3 +137,5 @@ set_file_name_save:	times 10 db 0
 set_file_ext:	times 3 db 0
 file_size:	db 0
 last_saved_sector:	db 0
+saved_bx:	dw 0
+error_code:	dw 0
