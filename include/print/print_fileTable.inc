@@ -8,13 +8,22 @@ print_fileTable:
 	call print_string
 	
 	;; load file table string
+	;; load file table from disk to memory
+	mov bx, 100h
+	mov es, bx
+	xor bx, bx					; ES:BX <- 100h:0000h = 1000h; file table mem location
+	xor dx, dx					; DH = head number; DL = drive number
+	mov cx, 0006h				; CH = cylinder number; DL = starting sector
+
+try_load:
+	mov ax, 0201h				; AH = 02h/int 13h read disk sector; AL = number of sector to read
+
+	int 13h
+	jc try_load
+
 	xor cx, cx					; reset counter for # of byte at current file table entry
-	mov ax, 0x100				; file table loc
-	mov es, ax					; ES = 0x1000
-	xor bx, bx					; ES:BX = 0x1000:0
-	mov ah, 0x0e				; get ready to print screen
-	
-	mov al, [ES:BX]
+	mov ax, 100h				; file table loc
+	mov ah, 0Eh					; get ready to print screen
 
 fileName_loop:
 	mov al, [ES:BX]

@@ -4,18 +4,20 @@
 ;;;
 
 load_file:
+	;; Function prologue
+	push bp
+	mov bp, sp
+	pusha
+
 	;; get params
-	pop bx
-	pop fs					; ES:BX <- memory location to load data to
-	pop si					; filename
+	mov bx, [bp+4]
+	mov fs, [bp+6]			; FS:BX <- memory location to load data to
+	mov si, [bp+8]			; filename
 	
 	;; Copy filename to variable
 	mov cx, 10
 	mov di, set_file_name_load
-	.loop:
-	lodsb
-	stosb
-	loop .loop
+	rep movsb
 
 	;; Reset file_name adress
 	mov si, set_file_name_load
@@ -80,6 +82,10 @@ found_file_load:
 	;; Error
 
 return_to_caller_load:
+	;; Function epilogue
+	popa					; restore registers in initial setup
+	mov sp, bp				; Reset stack pointer
+	pop bp					; Reset caller's base pointer
 	ret
 
 ;; Variables
