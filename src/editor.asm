@@ -37,7 +37,50 @@ create_new_file:
 	je text_editor
 
 load_existing_file:
-;; TODO
+	call print_fileTable
+	mov si, choose_file_msg
+	call print_string
+
+	;; file name of the pgm to load
+	call input_file_name
+
+	;; load file from input file name
+	push word editor_filename		; 1 params - filename
+	push word 1000h					; 2 params - segment to load to
+	push word 0000h					; 3 params - offset to load to
+	call load_file
+
+	add sp, 6						; Reset the stack
+	
+	cmp ax, 0						; Error check
+	jne load_file_error				; Error occured
+	jmp load_file_success
+
+load_file_error:
+	call clear_screen_text_mode
+	mov si, load_error_string
+	mov cx, 24
+	call write_bottom_screen_msg
+
+	jmp load_existing_file
+
+load_file_success:
+	;; Get file type from bx
+	mov di, editor_filetype
+	mov al, [bx]
+	stosb
+	mov al, [bx+1]
+	stosb
+	mov al, [bx+2]
+	stosb
+
+	;; Go to editor depending on file type (hex/other)
+	mov si, bx
+	mov di, extBin
+	mov cx, 3
+	rep cmpsb						; Check the file extention
+	je hex_editor					; .bin : gotto hex editor
+	jmp text_editor					; otherwise : gotto text editor
 
 text_editor:
 ;; TODO
@@ -88,7 +131,7 @@ execute_input:
 	xor di, di
 	call 1000h:0000h				; jump to hex code memory location to run
 	
-	jmp hex_editor						; reset for next input
+	jmp hex_editor					; reset for next input
 
 put_hex_byte:
 	rol byte [hex_byte], 4			; move digit 4 bits to the left, make room for 2nd digit
@@ -132,16 +175,8 @@ save_program:
 	mov al, 'n'
 	stosb
 
-	mov di, editor_filename
-	mov cx, 10
-
-.input_filename_loop:
-	xor ah, ah						; Get keystroke
-	int 16h
-	stosb							; store char to filename variable
-	mov ah, 0Eh
-	int 0x10
-	loop .input_filename_loop
+	;; file name to save the pgm as
+	call input_file_name
 
 	;; Call save_file function
 	push word editor_filename		; 1 params - filename
@@ -157,6 +192,7 @@ save_program:
 	jmp save_file_success
 
 save_file_error:
+	call clear_screen_text_mode
 	mov si, save_error_string
 	mov cx, 24
 	call write_bottom_screen_msg
@@ -165,8 +201,11 @@ save_file_error:
 	int 16h
 
 save_file_success:
-	;; Return to normal hex editor
-	jmp get_next_hex_char
+	call clear_screen_text_mode
+	mov si, controlsString
+	mov cx, 52						; number of byte to move
+	call write_bottom_screen_msg
+	jmp get_next_hex_char			; Return to normal hex editor
 
 write_bottom_screen_msg:
 	;; Message to write at the bottom of the screen
@@ -179,6 +218,20 @@ write_bottom_screen_msg:
 	movsb							; mov [di], [si] and increment both
 	stosb							; store character attribute byte (txt color)
 	loop .loop
+	ret
+
+input_file_name:
+	mov di, editor_filename
+	mov cx, 10
+
+.input_filename_loop:
+	xor ah, ah						; Get keystroke
+	int 16h
+	stosb							; store char to filename variable
+	mov ah, 0Eh
+	int 0x10
+	loop .input_filename_loop
+
 	ret
 
 end_editor:
@@ -195,15 +248,14 @@ end_editor:
 ;; include files
 include "../include/print/print_string.inc"
 include "../include/screen/clear_screen_text_mode.inc"
+include "../include/print/print_fileTable.inc"
 include "../include/disk/load_file.inc"
 include "../include/disk/save_file.inc"
+include "../include/type_conversions/hex_to_ascii.inc"
 
 ;; variables
-testString:
-	db "Testing", 0
 controlsString:   
 	db " $ = Run code ; ? = Return to kernel ; S = save file"
-controlsString_length equ $-controlsString
 new_o_current_string:
 	db "[C]reate new file or [L]oad existing file?", 0
 choose_filetype_string:
@@ -212,6 +264,10 @@ file_name_string:
 	db "Enter file name: ", 0
 save_error_string:
 	db "Save file error occured", 0
+load_error_string:
+	db "Load file error occured", 0
+choose_file_msg:
+	db "Choose file to load:", 0
 
 editor_filename:
 	times 10 db 0
@@ -219,6 +275,12 @@ editor_filetype:
 	times 3 db 0
 editor_filesize:
 	db 0
+
+extBin:
+	db "bin"
+extTxt:
+	db "txt"
+
 hex_byte:
 	db 00h							; 1 byte/2 hex digits
 text_color:

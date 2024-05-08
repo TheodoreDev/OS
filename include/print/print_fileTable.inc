@@ -32,12 +32,13 @@ fileName_loop:
 
 	int 0x10					; print char in al to screen
 	cmp cx, 9 					; at the end of name ?
-	je file_ext
+	je other_info
 	inc cx						; increment file entry byte counter
 	inc bx						; get next byte at file table
 	jmp fileName_loop
 
-file_ext:
+other_info:
+	;; file extention
 	mov cx, 3
 	call print_blanks_loop
 
@@ -51,7 +52,7 @@ file_ext:
 	mov al, [ES:BX]
 	int 0x10
 
-dir_entry_number:
+	;; directory entry number
 	mov cx, 9
 	call print_blanks_loop
 	
@@ -60,7 +61,7 @@ dir_entry_number:
 	call hex_to_ascii
 	int 0x10
 
-start_sector_number:
+	;; starting sector number
 	mov cx, 9
 	call print_blanks_loop
 	
@@ -69,7 +70,7 @@ start_sector_number:
 	call hex_to_ascii
 	int 0x10
 
-file_size:
+	;; file size
 	mov cx, 14
 	call print_blanks_loop
 	
@@ -90,5 +91,20 @@ end_print_fileTable:
 	popa
 	ret
 
+;; print out cx number of space to screen
+print_blanks_loop:
+	mov ah, 0x0e
+	mov al, " "
+	int 0x10
+	loop print_blanks_loop
+	ret
+
+;; Variables/constants
+nl equ 0xA, 0xD
+fileTableHeading:
+	db nl, "----------   ---------   -------   ------------   --------------",\
+	nl,"File Name    Extension   Entry #   Start Sector   Size (sectors)",\
+	nl,"----------   ---------   -------   ------------   --------------",\
+	nl,0
 
 ;;; Made by TheodoreDev

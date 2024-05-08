@@ -7,6 +7,7 @@ load_file:
 	;; Function prologue
 	push bp
 	mov bp, sp
+	sub sp, 2				; make room for local variables
 	pusha
 
 	;; get params
@@ -40,6 +41,7 @@ check_filename_load:
 	jmp check_filename_load
 
 compare_filenames_load:
+	mov di, set_file_name_load
 	push di
 	
 	.loop:
@@ -56,37 +58,49 @@ compare_filenames_load:
 restart_check_load:
 	mov si, set_file_name_load
 	pop di
-	inc di
+	add di, 16				; go to start of next file table entry
 	jmp check_filename_load
 
 found_file_load:
+	;; Get file type into variable
+	mov al, [ES:DI]
+	mov byte [set_file_type_load], al
+	mov al, [ES:DI+1]
+	mov byte [set_file_type_load+1], al
+	mov al, [ES:DI+2]
+	mov byte [set_file_type_load+2], al
+
 	;; Reset disk
 	xor ax, ax				; int 13h ah 00h - reset disk
 	xor dl, dl				; Disk 0
 	int 13h
 	
 	;; Set up params for int 13h ah02h - read disk sectors
-	add di, 4
+	mov word [bp-2], 0			; Init error code to 'success'
+
 	xor ch, ch 				; Track number
-	mov cl, [ES:DI]			; sector number to start reading at
-	inc di
+	mov cl, [ES:DI+4]		; sector number to start reading at
 	mov ax, fs
 	mov es, ax				; segment adress to load to, BX already set
 	mov ah, 02h				; int 13h ah 02h
-	mov al, [ES:DI]			; number of sectors to read
+	mov al, [ES:DI+5]		; number of sectors to read
 	xor dx, dx				; dh = head number, dl = drive number
 	
 	int 13h
 	jnc return_to_caller_load
 
-	;; Error
+	mov word [bp-2], 1		; error happend
+
 
 return_to_caller_load:
 	;; Function epilogue
+	mov ax, [bp-2]			; error code
 	popa					; restore registers in initial setup
+	mov bx, set_file_type_load	; set file type in bx
 	mov sp, bp				; Reset stack pointer
 	pop bp					; Reset caller's base pointer
 	ret
 
 ;; Variables
 set_file_name_load:	times 10 db 0
+set_file_type_load:	times 3 db 0

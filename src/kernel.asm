@@ -284,25 +284,6 @@ end_program:
 	cli							; clear interrupts
 	hlt							; halt the cpu
 
-;; convert hex byte to ascii
-hex_to_ascii:
-	mov ah, 0x0e
-	add al, 0x30				; convert to ascii number
-	cmp al, 0x39				; is value 0h-9h or A-F
-	jle hexNum
-	add al, 0x7					; add hex to get ascii 'A' - 'F'
-
-hexNum:
-	ret
-
-;; print out cx number of space to screen
-print_blanks_loop:
-	mov ah, 0x0e
-	mov al, " "
-	int 0x10
-	loop print_blanks_loop
-	ret
-
 ;; Include other file(s)
 include "../include/print/print_string.inc"
 include "../include/print/print_hex.inc"
@@ -310,7 +291,9 @@ include "../include/print/print_registers.inc"
 include "../include/print/print_fileTable.inc"
 include "../include/screen/clear_screen_text_mode.inc"
 include "../include/screen/set_graphics_screen.inc"
+include "../include/type_conversions/hex_to_ascii.inc"
 
+;; Variables/Constants
 nl equ 0xA, 0xD
 
 startMessage:
@@ -335,11 +318,6 @@ goBackMsg:
 dbgTest:
 	db "Test", 0
 
-fileTableHeading:
-	db nl, "----------   ---------   -------   ------------   --------------",\
-	nl,"File Name    Extension   Entry #   Start Sector   Size (sectors)",\
-	nl,"----------   ---------   -------   ------------   --------------",\
-	nl,0
 printRegHeading:
 	db nl, "--------  ------------", nl,\
 	"Register  Mem Location", nl,\

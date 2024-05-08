@@ -119,6 +119,7 @@ new_file:
 	jnc write_file_data
 
 write_file_data:
+	mov word [bp-2], 0			; Init error code to 'success'
 	mov ax, fs 
 	mov es, ax
 
