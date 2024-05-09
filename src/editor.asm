@@ -41,6 +41,10 @@ load_existing_file:
 	mov si, choose_file_msg
 	call print_string
 
+	;; Restore extra segment
+	mov ax, 800h
+	mov es, ax
+
 	;; file name of the pgm to load
 	call input_file_name
 
@@ -57,14 +61,20 @@ load_existing_file:
 	jmp load_file_success
 
 load_file_error:
-	call clear_screen_text_mode
 	mov si, load_error_string
 	mov cx, 24
 	call write_bottom_screen_msg
 
+	xor ax, ax
+	int 16h
+	call clear_screen_text_mode
 	jmp load_existing_file
 
 load_file_success:
+	;; Restore extra segment
+	mov ax, 800h
+	mov es, ax
+
 	;; Get file type from bx
 	mov di, editor_filetype
 	mov al, [bx]
@@ -86,16 +96,11 @@ text_editor:
 ;; TODO
 
 hex_editor:
-	call clear_screen_text_mode
-
 	;; Write keybinds at the bottom of screen
+	call clear_screen_text_mode
 	mov si, controlsString
 	mov cx, 52						; number of byte to move
 	call write_bottom_screen_msg
-	
-	;; Restore data/extra segments
-	mov ax, 800h
-	mov es, ax
 
 	;; User input and print to screen
 	xor cx, cx						; reset byte counter
@@ -278,8 +283,6 @@ editor_filesize:
 
 extBin:
 	db "bin"
-extTxt:
-	db "txt"
 
 hex_byte:
 	db 00h							; 1 byte/2 hex digits

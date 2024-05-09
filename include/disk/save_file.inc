@@ -42,7 +42,6 @@ save_file:
 	xor ax, ax
 	mov es, ax
 	mov di, 1000h			; location of fileTable in memory
-	mov cx, 10
 
 check_filename_save:
 	;; Get starting sector of file + file size in sectors
@@ -61,19 +60,14 @@ check_filename_save:
 	jmp check_filename_save
 
 compare_filenames_save:
-	mov di, set_file_name_save
 	push di
+	mov cx, 10
+	mov ax, 800h			; set up ds for ds:si comparaison to ES:DI
+	mov ds, ax
 	
-	.loop:
-	mov al, [ES:DI]
-	inc di
-	cmp al, [si]
+	rep cmpsb
 	jne restart_check_save
-	
-	dec cl
-	jz found_file_save
-	inc si
-	jmp .loop
+	je found_file_save
 
 restart_check_save:
 	mov si, set_file_name_save

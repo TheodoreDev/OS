@@ -8,7 +8,10 @@ load_file:
 	push bp
 	mov bp, sp
 	sub sp, 2				; make room for local variables
-	pusha
+
+	push bx		; Save modified registers
+	push fs
+	push si
 
 	;; get params
 	mov bx, [bp+4]
@@ -26,13 +29,12 @@ load_file:
 	;; Search filetable for filename
 	xor ax, ax
 	mov es, ax
-	mov di, 1000h			; location of fileTable in memory
-	mov cx, 10
+	mov di, di			; location of fileTable in memory
 
 check_filename_load:
 	mov al, [ES:DI]
 	cmp al, 0 				; end of filetable ?
-	je return_to_caller_load
+	je file_load_error
 
 	cmp al, [si]
 	je compare_filenames_load
@@ -41,19 +43,12 @@ check_filename_load:
 	jmp check_filename_load
 
 compare_filenames_load:
-	mov di, set_file_name_load
 	push di
-	
-	.loop:
-	mov al, [ES:DI]
-	inc di
-	cmp al, [si]
+	mov cx, 10
+
+	rep cmpsb
 	jne restart_check_load
-	
-	dec cl
-	jz found_file_load
-	inc si
-	jmp .loop
+	je found_file_load
 
 restart_check_load:
 	mov si, set_file_name_load
@@ -80,22 +75,28 @@ found_file_load:
 
 	xor ch, ch 				; Track number
 	mov cl, [ES:DI+4]		; sector number to start reading at
-	mov ax, fs
-	mov es, ax				; segment adress to load to, BX already set
 	mov ah, 02h				; int 13h ah 02h
 	mov al, [ES:DI+5]		; number of sectors to read
+	mov dx, fs
+	mov es, dx				; segment adress to load to, BX already set
 	xor dx, dx				; dh = head number, dl = drive number
 	
 	int 13h
 	jnc return_to_caller_load
 
+file_load_error:
 	mov word [bp-2], 1		; error happend
-
 
 return_to_caller_load:
 	;; Function epilogue
 	mov ax, [bp-2]			; error code
-	popa					; restore registers in initial setup
+
+	;; restore registers in initial setup
+	pop si
+	pop dx
+	pop fs
+	pop bx
+	
 	mov bx, set_file_type_load	; set file type in bx
 	mov sp, bp				; Reset stack pointer
 	pop bp					; Reset caller's base pointer
