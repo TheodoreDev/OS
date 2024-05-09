@@ -1,5 +1,7 @@
 # Basic OS
 
+Readme is not over yet
+
 ## Starting
 
 ### Dependencies
