@@ -27,9 +27,9 @@ load_file:
 	mov si, set_file_name_load
 
 	;; Search filetable for filename
-	xor ax, ax
+	mov ax, 100h
 	mov es, ax
-	mov di, di			; location of fileTable in memory
+	xor di, di			; location of fileTable in memory
 
 check_filename_load:
 	mov al, [ES:DI]

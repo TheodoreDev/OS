@@ -30,9 +30,9 @@ create_new_file:
 	call print_string
 	xor ah, ah
 	int 16h
-	mov byte [editor_filesize], 0	; Reset filesize counter
+	mov word [editor_filesize], 0	; Reset filesize counter
 	cmp al, BINFILE					; binary file
-	je hex_editor
+	je new_file_hex
 	cmp al, OTHERFILE				; other file
 	je text_editor
 
@@ -89,15 +89,64 @@ load_file_success:
 	mov di, extBin
 	mov cx, 3
 	rep cmpsb						; Check the file extention
-	je hex_editor					; .bin : gotto hex editor
+	je load_file_hex				; .bin : gotto hex editor
 	jmp text_editor					; otherwise : gotto text editor
+
+new_file_hex:
+	call clear_screen_text_mode
+
+	;; User input and print to screen
+	xor cx, cx						; reset byte counter
+	mov ax, 1000h
+	mov es, ax
+	xor di, di						; ES:DI <- 1000h:0000 = 10000h
+
+	jmp hex_editor
+
+load_file_hex:
+	call clear_screen_text_mode
+	mov ax, 1000h
+	mov es, ax
+	xor di, di						; ES:DI <- 1000h:0000 = 10000h
+
+	mov cx, 512						; TODO: actual file size
+	mov ah, 0Eh
+
+	.loop:
+	mov al, [ES:DI]					; Read hex byte from file location
+	ror al, 4						; Get 1sr nibble into al
+	and al, 00001111b
+	call hex_to_ascii
+	int 0x10
+
+	mov al, [ES:DI]
+	and al, 00001111b				; Get 2nd nibble into al
+	call hex_to_ascii
+	int 0x10
+
+	mov al, ' '						; print a space
+	int 0x10
+	inc di
+	loop .loop
+
+	dec di							; Fix off by one
+	mov word [save_di], di			; save di first
+
+	;; Write keybinds at the bottom of screen
+	mov si, controlsString
+	mov cx, 52						; number of byte to move
+	call write_bottom_screen_msg
+
+	mov ax, 1000h
+	mov es, ax						; reset to file location
+	mov di, [save_di]
+	jmp get_next_hex_char			; Go to hex editor
 
 text_editor:
 ;; TODO
 
 hex_editor:
 	;; Write keybinds at the bottom of screen
-	call clear_screen_text_mode
 	mov si, controlsString
 	mov cx, 52						; number of byte to move
 	call write_bottom_screen_msg
@@ -143,7 +192,7 @@ put_hex_byte:
 	or byte [hex_byte], al			; move 2nd ascii byte/hex digit into memory
 	mov al, [hex_byte]
 	stosb							; put hex byte(2 hex digits) into hex code memory area and inc di
-	inc byte [editor_filesize]		; Increment filesize counter
+	inc word [editor_filesize]		; Increment filesize counter
 	xor cx, cx 						; reset byte counter
 	mov al, ' '						; print space to screen
 	int 10h
@@ -162,6 +211,35 @@ get_hex_num:
 	jmp return_from_hex_num
 
 save_program:
+	;; Fill out rest of sector with data if not already
+	xor dx, dx
+	mov ax, word [editor_filesize]
+	mov bx, 512
+	div bx							; ax : quotient ; dx : remainder
+	cmp ax, 0
+	je check_sector
+	imul cx, ax, 512				; Otherwise number of sector already filled
+	cmp dx, 0
+	je enter_filename				; No need to fill
+	jmp fill_out_sector				; fill out rest of sector with 0
+
+check_sector:
+	cmp dx, 0
+	jne fill_out_sector				; file not empty, fill out a part of sector
+	
+	;; Otherwise, fill out the whole sector
+	mov cx, 512
+	xor al, al
+	rep stosb
+	jmp enter_filename
+
+fill_out_sector:
+	mov cx, 512
+	sub cx, dx
+	xor al, al
+	rep stosb
+
+enter_filename:
 	;; Have user enter file name for new file
 	call clear_screen_text_mode
 	mov si, file_name_string
@@ -279,7 +357,7 @@ editor_filename:
 editor_filetype:
 	times 3 db 0
 editor_filesize:
-	db 0
+	dw 0
 
 extBin:
 	db "bin"
@@ -288,6 +366,8 @@ hex_byte:
 	db 00h							; 1 byte/2 hex digits
 text_color:
 	db 17h
+save_di:
+	dw 0
 
 ;; Sector padding
-times 1536-($-$$) db 0
+times 2048-($-$$) db 0
