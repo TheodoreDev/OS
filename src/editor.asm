@@ -167,7 +167,31 @@ get_next_hex_char:
 	je end_editor
 	cmp al, SAVEPGM					; save your program
 	je save_program
+
+	;; Prevent entering a non-hex digit
+	cmp al, '0'
+	jl get_next_hex_char			; skip input char
+	cmp al, '9'
+	jg check_if_athruf_lowercase
 	
+	jmp convert_input				; continue on
+
+check_if_athruf_upercase:
+	cmp al, 'A'
+	jl get_next_hex_char
+	cmp al, 'F'
+	jg check_if_athruf_lowercase 
+	jmp convert_input
+
+check_if_athruf_lowercase:
+	cmp al, 'a'
+	jl get_next_hex_char
+	cmp al, 'f'
+	jg get_next_hex_char
+
+	sub al, 20h						; Convert lowercase to uper
+
+convert_input:
 	int 10h							; print out input char
 	call ascii_to_hex
 
