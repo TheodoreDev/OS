@@ -10,6 +10,10 @@ LOADEXIST equ 'L'
 BINFILE equ 'B'
 OTHERFILE equ 'O'
 VIDMEM equ 0B800h
+LEFTARROW equ 4Bh
+RIGHTARROW equ 4Dh
+UPARROW equ 48h
+DOWNARROW equ 50h
 
 init:
 	;; Clear the screen
@@ -94,6 +98,19 @@ load_file_success:
 
 new_file_hex:
 	call clear_screen_text_mode
+	;; get fileext (.bin)
+	mov ax, 800h
+	mov es, ax						; reset ex to program location (8000h)
+
+	mov di, editor_filetype
+	mov al, 'b'
+	stosb
+	mov al, 'i'
+	stosb
+	mov al, 'n'
+	stosb
+	;; Write keybinds at the bottom of screen
+	call fill_out_editor_hud
 
 	;; User input and print to screen
 	xor cx, cx						; reset byte counter
@@ -133,9 +150,7 @@ load_file_hex:
 	mov word [save_di], di			; save di first
 
 	;; Write keybinds at the bottom of screen
-	mov si, controlsString
-	mov cx, 52						; number of byte to move
-	call write_bottom_screen_msg
+	call fill_out_editor_hud
 
 	mov ax, 1000h
 	mov es, ax						; reset to file location
@@ -143,24 +158,40 @@ load_file_hex:
 	jmp get_next_hex_char			; Go to hex editor
 
 text_editor:
-;; TODO
+	;; TODO
+	call clear_screen_text_mode
+	;; get fileext (.bin)
+	mov ax, 800h
+	mov es, ax						; reset ex to program location (8000h)
+	
+	mov di, editor_filetype
+	mov al, 't'
+	stosb
+	mov al, 'x'
+	stosb
+	mov al, 't'
+	stosb
+	;; Write keybinds at the bottom of screen
+	call fill_out_editor_hud
 
 hex_editor:
-	;; Write keybinds at the bottom of screen
-	mov si, controlsString
-	mov cx, 52						; number of byte to move
-	call write_bottom_screen_msg
-
 	;; User input and print to screen
 	xor cx, cx						; reset byte counter
 	mov ax, 1000h
 	mov es, ax
 	xor di, di						; ES:DI <- 1000h:0000 = 10000h
 
+	;; Reset cursor x/y
+	mov byte [cursor_x], 0
+	mov byte [cursor_y], 0
+
 get_next_hex_char:
 	xor ax, ax
 	int 16h							; get keystroke
+	mov byte [save_scancode], ah
 	mov ah, 0Eh
+
+	;; Check hex editor keybinds
 	cmp al, RUNINPUT				; at the end of user input
 	je execute_input
 	cmp al, ENDPGM					; end program, exit back to kernel
@@ -168,31 +199,64 @@ get_next_hex_char:
 	cmp al, SAVEPGM					; save your program
 	je save_program
 
+	;; Check arrow keys
+	cmp byte [save_scancode], LEFTARROW		; Left arrow
+	je left_arrow_pressed
+	cmp byte [save_scancode], RIGHTARROW	; Right arrow
+	je right_arrow_pressed
+	cmp byte [save_scancode], UPARROW		; Up arrow
+	je up_arrow_pressed
+	cmp byte [save_scancode], DOWNARROW		; Down arrow
+	je down_arrow_pressed
+	
+	jmp check_valid_hex
+
+left_arrow_pressed:
+	cmp byte [cursor_x], 3					; at the beggining of the line
+	jl get_next_hex_char
+	sub byte [cursor_x], 3
+
+	mov dh, [cursor_y]
+	mov dl, [cursor_x]
+	push dx
+	call move_cursor
+	dec di							; Move file data to previous byte
+	jmp get_next_hex_char
+
+right_arrow_pressed:
+	;; TODO
+
+up_arrow_pressed:
+	;; TODO
+
+down_arrow_pressed:
+	;; TODO
+
+
 	;; Prevent entering a non-hex digit
+check_valid_hex:
 	cmp al, '0'
 	jl get_next_hex_char			; skip input char
 	cmp al, '9'
-	jg check_if_athruf_lowercase
-	
-	jmp convert_input				; continue on
+	jle convert_input
 
 check_if_athruf_upercase:
 	cmp al, 'A'
-	jl get_next_hex_char
+	jl get_next_hex_char			; skip input char
 	cmp al, 'F'
-	jg check_if_athruf_lowercase 
-	jmp convert_input
+	jle convert_input
 
 check_if_athruf_lowercase:
 	cmp al, 'a'
-	jl get_next_hex_char
+	jl get_next_hex_char			; skip input char
 	cmp al, 'f'
-	jg get_next_hex_char
+	jg get_next_hex_char			; skip input char
 
 	sub al, 20h						; Convert lowercase to uper
 
 convert_input:
 	int 10h							; print out input char
+	inc byte [cursor_x]
 	call ascii_to_hex
 
 	inc cx							; increment byte counter
@@ -205,7 +269,8 @@ return_from_hex:
 
 ;; Convert to valid machine code & run
 execute_input:
-	mov byte [es:di], 0CBh 			; CB hex = far return x86 instruction
+	mov di, word [editor_filesize]	; di point to end of file
+	mov byte [ES:DI], 0CBh 			; CB hex = far return x86 instruction
 	xor di, di
 	call 1000h:0000h				; jump to hex code memory location to run
 	
@@ -220,6 +285,8 @@ put_hex_byte:
 	xor cx, cx 						; reset byte counter
 	mov al, ' '						; print space to screen
 	int 10h
+	inc byte [cursor_x]
+
 	jmp return_from_hex
 
 ascii_to_hex:
@@ -309,9 +376,8 @@ save_file_error:
 
 save_file_success:
 	call clear_screen_text_mode
-	mov si, controlsString
-	mov cx, 52						; number of byte to move
-	call write_bottom_screen_msg
+	;; Write keybinds at the bottom of screen
+	call fill_out_editor_hud
 	jmp get_next_hex_char			; Return to normal hex editor
 
 write_bottom_screen_msg:
@@ -341,6 +407,33 @@ input_file_name:
 
 	ret
 
+fill_out_editor_hud:
+	;; Fill string variable with msg to write
+	mov ax, 800h
+	mov es, ax
+	mov di, editor_hud
+	mov si, control_str_hex
+	mov cx, 52						; number of byte to move
+	rep movsb
+
+	mov al, ' '						; append filetype to string
+	stosb
+	stosb
+	mov al, '['
+	stosb
+	mov al, '.'
+	stosb
+	mov si, editor_filetype
+	mov cx, 3
+	rep movsb
+	mov al, ']'
+	stosb
+
+	mov si, editor_hud
+	mov cx, 80
+	call write_bottom_screen_msg
+	ret
+
 end_editor:
 	mov ax, 0x200
 	mov es, ax
@@ -355,13 +448,16 @@ end_editor:
 ;; include files
 include "../include/print/print_string.inc"
 include "../include/screen/clear_screen_text_mode.inc"
+include "../include/screen/move_cursor.inc"
 include "../include/print/print_fileTable.inc"
 include "../include/disk/load_file.inc"
 include "../include/disk/save_file.inc"
 include "../include/type_conversions/hex_to_ascii.inc"
 
 ;; variables
-controlsString:   
+editor_hud:
+	times 80 db 0
+control_str_hex:
 	db " $ = Run code ; ? = Return to kernel ; S = save file"
 new_o_current_string:
 	db "[C]reate new file or [L]oad existing file?", 0
@@ -392,6 +488,12 @@ text_color:
 	db 17h
 save_di:
 	dw 0
+save_scancode:
+	db 0
+cursor_x:
+	db 0
+cursor_y:
+	db 0
 
 ;; Sector padding
 times 2048-($-$$) db 0
