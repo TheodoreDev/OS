@@ -4,6 +4,7 @@
 ;;;  input 2 : row to print to
 ;;;  input 2 : col to print to
 ;;;  output 1 : return code in AX
+;;;
 
 ;; CONSTANTS
 VIDMEM equ 0B800h

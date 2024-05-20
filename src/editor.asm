@@ -16,6 +16,7 @@ UPARROW equ 48h
 DOWNARROW equ 50h
 BACKSPACE equ 08h
 ESC equ 01h
+ENDLINE equ 80
 
 init:
 	;; Clear the screen
@@ -120,6 +121,12 @@ new_file_hex:
 
 load_file_hex:
 	call clear_screen_text_mode
+
+	;; Reset cursor position
+	mov word [cursor_x], 0
+	mov word [cursor_y], 0
+
+	;; Load file bytes to screen
 	mov ax, 1000h
 	mov es, ax
 	xor di, di						; ES:DI <- 1000h:0000 = 10000h
@@ -133,18 +140,31 @@ load_file_hex:
 	and al, 00001111b
 	call hex_to_ascii
 	int 0x10
+	inc word [cursor_x]
 
 	mov al, [ES:DI]
 	and al, 00001111b				; Get 2nd nibble into al
 	call hex_to_ascii
 	int 0x10
+	inc word [cursor_x]
 
+	cmp word [cursor_x], ENDLINE	; at the end of line
+	je .move_down_row
 	mov al, ' '						; print a space
 	int 0x10
+	inc word [cursor_x]
+	jmp .iterate_loop
+
+	.move_down_row:
+	mov word [cursor_x], 0			; begginig of the line
+	inc word [cursor_y]				; go down one line
+
+	.iterate_loop:
 	inc di
+	inc word [editor_filesize]
+	
 	loop .loop
 
-	dec di							; Fix off by one
 	mov word [save_di], di			; save di first
 
 	;; Write keybinds at the bottom of screen
@@ -315,7 +335,7 @@ hex_editor:
 	left_arrow_pressed:
 		cmp byte [cursor_x], 3			; at the beggining of the line
 		jl get_next_hex_char
-		sub byte [cursor_x], 3
+		sub byte [cursor_x], 3			; go left one hex byte
 
 		push word [cursor_y]
 		push word [cursor_x]
@@ -328,7 +348,7 @@ hex_editor:
 	right_arrow_pressed:
 		cmp byte [cursor_x], 75			; at the end of the line
 		jg get_next_hex_char
-		add byte [cursor_x], 3
+		add byte [cursor_x], 3			; go right one hex byte
 
 		push word [cursor_y]
 		push word [cursor_x]
@@ -339,11 +359,30 @@ hex_editor:
 		jmp get_next_hex_char
 
 	up_arrow_pressed:
-		;; TODO
+		cmp word [cursor_y], 0			; at the bottom of screen
+		je get_next_hex_char
+		dec word [cursor_y]				; go down one line
+		sub di, 27						; number of hex bytes in a screen row
+
+		push word [cursor_y]
+		push word [cursor_x]
+		call move_cursor
+		add sp, 4
+
+		jmp get_next_hex_char
 
 	down_arrow_pressed:
-		;; TODO
+		cmp word [cursor_y], 23			; at the bottom of screen
+		je get_next_hex_char
+		inc word [cursor_y]				; go down one line
+		add di, 27						; number of hex bytes in a screen row
 
+		push word [cursor_y]
+		push word [cursor_x]
+		call move_cursor
+		add sp, 4
+
+		jmp get_next_hex_char
 
 	;; Prevent entering a non-hex digit
 	check_valid_hex:
@@ -395,10 +434,18 @@ hex_editor:
 		stosb							; put hex byte(2 hex digits) into hex code memory area and inc di
 		inc word [editor_filesize]		; Increment filesize counter
 		xor cx, cx 						; reset byte counter
+
+		cmp word [cursor_x], ENDLINE	; at the end of a line
+		je .move_down_row
 		mov al, ' '						; print space to screen
 		int 10h
 		inc byte [cursor_x]
 
+		jmp return_from_hex
+
+		.move_down_row:
+		mov word [cursor_x], 0			; begginig of next line
+		inc word[cursor_y]				; move one line down
 		jmp return_from_hex
 
 	ascii_to_hex:
