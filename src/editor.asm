@@ -225,6 +225,17 @@ new_file_txt:
 
 load_file_txt:
 	call clear_screen_text_mode
+
+	;; Init cursor and file variables
+	xor ax, ax
+	mov word [cursor_x], ax
+	mov word [cursor_y], ax
+	mov word [current_line_length], ax
+	mov word [prev_line_length], ax
+	mov word [next_line_length], ax
+	mov word [file_length_lines], ax
+	mov word [file_length_bytes], ax
+
 	mov ax, 1000h
 	mov es, ax
 	xor di, di						; ES:DI <- 1000h:0000 = 10000h
@@ -234,21 +245,60 @@ load_file_txt:
 
 	.loop:
 	mov al, [ES:DI]					; Read hex byte from file location
-	int 0x10
-	inc di
+	mov [save_input_char], al		; Save input char
+	cmp al, 0Ah
+	jne .not_newline				; not a new line
+	mov word [cursor_x], ENDLINE
+	jmp .noconvert
+
+	.not_newline:
+	cmp al, 0Fh
+	jg .noconvert					; not convert to ascii
+	call hex_to_ascii
+
+	.noconvert:
+	cmp word [cursor_x], ENDLINE	; at the end of line
+	jne .increment_cursor
+	mov word [cursor_x], 0			; begginig of the line
+	inc word [cursor_y]				; go down one line
+	inc word [file_length_lines]	; Update file length in lines
+
+	mov bx, [current_line_length]
+	mov [prev_line_length], bx		; Save current as previous line length
+	mov word [current_line_length], 0	; reset current line length
+	jmp .go_on
+
+	.increment_cursor:
+	inc word [cursor_x]
+
+	.go_on:
+	push ax							; char to print in AL
+	push word [cursor_y]
+	push word [cursor_x]
+	call print_char_text_mode
+	add sp, 6						; restore stack
+
+	mov al, [save_input_char]		; Get input char
+	stosb
+	inc word [current_line_length]	; Update line length
+	inc word [file_length_bytes]	; Update file length in bytes
 	loop .loop
 
-	dec di							; Fix off by one
 	mov word [save_di], di			; save di first
 
 	;; Write keybinds at the bottom of screen
 	mov si, control_str_txt
-	mov cx, 44						; number of byte to write
+	mov cx, 46						; number of byte to write
 	call fill_out_editor_hud
 
 	mov ax, 1000h
 	mov es, ax						; reset to file location
 	mov di, [save_di]
+
+	push word [cursor_y]			; Move cursor
+	push word [cursor_x]
+	call move_cursor
+	add sp, 4						; restore the stack after call
 
 	jmp text_editor					; Gotto txt editor
 
